@@ -1,0 +1,3 @@
+*.pyc
+local_settings.py
+netflix_api_settings.py
