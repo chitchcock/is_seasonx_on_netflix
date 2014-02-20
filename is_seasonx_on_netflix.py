@@ -1,4 +1,4 @@
-from python_netflix.netflix import NetflixAPI
+from netflix import NetflixAPI
 import datetime
 
 # Keep 'netflix_api_settings.py' in the same directory as this
@@ -20,42 +20,29 @@ from local_settings import show_id, season_to_find, output_html_path, output_htm
 
 def find_season_link(n_api, show_id, season_to_find):
     #initialize the season found string to determine if we find it during our loop
-    season_id_found = ''
+    season_link_found = ''
     
-    the_request_url = 'catalog/titles/series/{0}/seasons'.format(show_id)
+    the_request_url = 'catalog/titles/series/{0}'.format(show_id)
     
-    print the_request_url
-                   
-    the_request = n_api.api_request(the_request_url, 'GET', None, 'json', False)
-    
-    if 'catalog_titles' in the_request:
-        if 'catalog_title' in the_request['catalog_titles']:
-            for catalog_entry in the_request['catalog_titles']['catalog_title']:
-                season_name = catalog_entry['title']['regular']
-                
-                if season_name.endswith('Season {0}'.format(season_to_find)) or season_name.endswith('Series {0}'.format(season_to_find)):           
-                    season_id_found = catalog_entry['id']
-                                
-            if season_id_found == '':                
-                return 'no'
-                
-            else:
-                the_season_request = n_api.api_request(season_id_found, 'GET', None, 'json', False)
-                the_season_links = the_season_request['catalog_title']['link']
-                the_season_link = 'http://www.netflix.com'
-                    
-                for link in the_season_links:
-                    if link['title'] == 'web page':
-                        the_season_link = link['href']            
-                
-                
-                return the_season_link
-                
+    params = {'v': '2.0', 'expand': '@episodes'}               
+    the_request = n_api.api_request(the_request_url, 'GET', params)
+
+    if 'catalog_title' in the_request:
+        if 'episodes' in the_request['catalog_title']:
+            for episode_entry in the_request['catalog_title']['episodes']:
+                if 'season_number' in episode_entry:
+                    if episode_entry['season_number'] == season_to_find:
+                        season_link_found = 'http://movies.netflix.com/WiMovie/{0}'.format(show_id)
+                        break   
         else:
-            return 'unknown'    
-                    
+            print 'no episodes'
+                                              
+                                
+    if season_link_found == '':                
+        return 'no'
+                
     else:
-        return 'unknown'
+        return season_link_found
         
         
 def build_output_html(the_season_text, the_season_link, output_html_path, output_html_template_path):
@@ -84,7 +71,7 @@ elif season_link == 'no':
     build_output_html('NO', '', output_html_path, output_html_template)
     
 else:
-    print 'Season found'
+    print 'Season {0} found - {1}'.format(season_to_find, season_link)
     build_output_html('YES', season_link, output_html_path, output_html_template)
                      
                     
